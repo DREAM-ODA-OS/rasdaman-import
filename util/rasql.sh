@@ -294,6 +294,7 @@ function run_rasql_query()
   
   local freemem=`free -m | grep Mem: | awk '{ print $4; }'`
   if [ $freemem -lt $min_mem ]; then
+    echo ""
     log "memory too low:"
     echo -n "  "
     restart_rasdaman
