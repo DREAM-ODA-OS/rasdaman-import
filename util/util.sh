@@ -276,10 +276,20 @@ function restart_rasdaman()
   if [ $? -ne 0 ]; then
     sudo service rasdaman restart > /dev/null 2>&1
   else
-    $STOP_RAS > /dev/null 2>&1
+    stop_rasdaman.sh > /dev/null 2>&1
     sleep 2
-    $START_RAS > /dev/null 2>&1
+    start_rasdaman.sh > /dev/null 2>&1
   fi
+  feedback
+}
+
+# ------------------------------------------------------------------------------
+# restart postgres
+#
+function restart_postgres()
+{
+  logn "restarting postgres... "
+  sudo service postgresql restart > /dev/null 2>&1
   feedback
 }
 

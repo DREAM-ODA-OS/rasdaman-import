@@ -44,7 +44,7 @@ for c in $COLLS; do
   feedback
 
   logn "initializing object... "
-  $RASQL -q "insert into $c values marray i in [0:0,0:0,0:0] values {0c,0c,0c} tiling aligned [0:$X,0:$Y,0:0] tile size 7471104 index rpt_index" > /dev/null
+  $RASQL -q "insert into $c values marray i in [0:0,0:0,0:0] values {0c,0c,0c} tiling aligned [0:$X,0:$Y,0:0] tile size $((($X+1)*($Y+1)*3)) index rpt_index" > /dev/null
   feedback
 done
 }
@@ -52,6 +52,11 @@ done
 # ----------------------------------------------------------------------------
 # import data to rasdaman
 # ----------------------------------------------------------------------------
+
+function update_query()
+{
+  $RASQL -q "update $c as a set a[*:*, *:*, $count] assign (char) inv_png(\$1)" -f $f > /dev/null
+}
 
 function importras()
 {
@@ -62,15 +67,10 @@ for c in $COLLS; do
   echo
 
   count=0
-  for image in `ls a_vm* |sort -n -t m -k 2`
+  for f in `ls a_vm* |sort -n -t m -k 2`
   do
-    if [ $count -lt 400 -o $count -gt 600 ]; then
-      count=$((count+1))
-      continue
-    fi
     logn "slice $count / $H ... "
-    $RASQL -q "update $c as a set a[*:*, *:*, $count] assign (char) inv_png(\$1)" --file $image > /dev/null
-    feedback
+    run_rasql_query update_query
     count=$((count+1))
   done;
 

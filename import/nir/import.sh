@@ -49,14 +49,19 @@ done
 # import data to rasdaman
 # ----------------------------------------------------------------------------
 
+function insert_query()
+{
+  $RASQL -q "insert into $c values inv_tiff(\$1)" -f $f > /dev/null
+}
+
 function importras()
 {
 pushd $DATADIR > /dev/null
 
 for c in $COLLS; do
   logn "importing $c... "
-  $RASQL -q "insert into $c values inv_tiff(\$1)" -f $c.tiff > /dev/null
-  feedback
+  f=$c.tiff
+  run_rasql_query insert_query
 done
 
 popd > /dev/null

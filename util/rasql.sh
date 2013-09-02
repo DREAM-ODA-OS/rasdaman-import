@@ -261,3 +261,78 @@ function get_range_type()
   done
   $RASQL -q "select r[$subset] from $c as r" --type --out string | grep "Element Type Schema" | awk -F '<' '{ print $2; }' | awk -F '>' '{ print $1; }' | sed 's/^ //' | sed 's/ $//'
 }
+
+# ------------------------------------------------------------------------------
+# execute a rasql query by taking into account rasdaman availability. The rasql
+# query is not passed directly here, as we can never account for all the
+# possible cases. Instead, it's wrapped into a function, and the function name
+# is passed here.
+#
+# This function will execute the function retrying maximum 5 times until the 
+# called function returns a 0. As long as the called function returns non-zero,
+# rasdaman is restarted. Also amount of free RAM is checked, if it's lower than
+# 300MB then rasdaman is restarted.
+#
+# This function also computes import speed, and depends on global variable $f
+# pointing to the file that is being imported. This is optional, if $f is not
+# defined, then only the time in seconds is printed, instead of speed in MB/s.
+#
+# arg 1: function name to execute
+# arg 2: minimum RAM, optional by default it's 500MB
+function run_rasql_query()
+{
+  local func="$1"
+  local min_mem=300
+  if [ $# -eq 2 ]; then
+    min_mem=$2
+  fi
+  
+  local filesize=0
+  if [ -n "$f" -a -f "$f" ]; then
+    filesize=$(stat -c%s "$f")
+  fi
+  
+  local freemem=`free -m | grep Mem: | awk '{ print $4; }'`
+  if [ $freemem -lt $min_mem ]; then
+    log "memory too low:"
+    echo -n "  "
+    restart_rasdaman
+    #echo -n "  "
+    #restart_postgres
+  fi
+  
+  local rc=1
+  local times=0
+  while [ $rc -ne 0 ]; do
+    
+    # repeat a failing query maximum 5 times
+    if [ $times -gt 5 ]; then
+      echo "failed importing to rasdaman"
+      break
+    fi
+    
+    local START=$(date +%s.%N)
+    
+    # execute function
+    $func
+    rc=$?
+    
+    local END=$(date +%s.%N)
+    
+    if [ $rc -ne 0 ]; then
+      times=$(($times + 1))
+      echo ""
+      logn "failed, repeating $times... "
+      restart_rasdaman
+    else
+      local DIFF=0
+      if [ $filesize -eq 0 ]; then
+        DIFF=$(echo "($END - $START)" | bc)
+        echo "ok, $DIFF seconds."
+      else
+        DIFF=$(echo "scale=3; ($filesize / ($END - $START)) / 1048576" | bc)
+        echo "ok, at $DIFF MB/s."
+      fi
+    fi
+  done
+}

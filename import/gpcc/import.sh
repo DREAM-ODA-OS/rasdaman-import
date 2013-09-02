@@ -44,7 +44,7 @@ for c in $COLLS; do
   feedback
 
   logn "initializing object... "
-  $RASQL -q "insert into $c values marray x in [0:0,0:0,0:0] values (float)0 tiling aligned [0:0,0:$(($Y-1)),0:$(($X-1))] tile size $(($X*$Y*4))" > /dev/null
+  $RASQL -q "insert into $c values marray x in [0:0,0:0,0:0] values (float)0 tiling aligned [0:0,0:$(($X-1)),0:$(($Y-1))] tile size $(($X*$Y*4))" > /dev/null
   feedback
 done
 }
@@ -53,65 +53,41 @@ done
 # import data to rasdaman
 # ----------------------------------------------------------------------------
 
+function update_query()
+{
+  $RASQL -q "update $c as m set m[$month,0:*,0:*] assign (float)inv_tiff(\$1)" -f $f > /dev/null
+}
+
 function importras()
 {
-pushd $TMP_DIR > /dev/null
+pushd $DATADIR > /dev/null
 
 for c in $COLLS; do
   check_collection "$c" "collection $c not found, please initialize the import."
   
   log "importing $c"
   
-  gzipped="$DATADIR/full_data_v6_precip_05.nc.gz"
-  f="data.nc"
-  if [ ! -f "$gzipped" ]; then
-    error "data not found: $gzipped"
-  fi
-  
-  logn "unzipping $gzipped... "
-  gunzip -c "$gzipped" > $f
-  if [ -f $f ]; then
-    echo ok.
-  else
-    echo failed.
-    exit $RC_ERROR
-  fi
-  
-  logn "flipping NetCDF file on the Y axis... "
-  ncpdq -O -h -a -lon $f tmp.nc
-  if [ $? -ne 0 ]; then
-    echo "failed."
-  else
-    echo "ok."
-    mv tmp.nc $f
-
-    # import in 10 year increments (120 months)
-    increment=0
-    month=0
-    while [ $month -lt $T ]; do
-      
-      logn "extracting $month / $T months... "
-      ncks -O -d time,$month,$month $f tmp.nc > /dev/null
-      feedback
-
-      ncdump tmp.nc | sed 's/float p(time, /float p(/' | ncgen -o tmp2.nc
-      mv tmp2.nc tmp.nc
-
-      logn "importing NetCDF file to rasdaman... "
-      $RASQL -q "update $c as m set m[$month,0:*,0:*] assign (float)inv_netcdf(\$1, \"vars=p\")" -f tmp.nc > /dev/null
-      feedback
-      
-      month=$(($month + 1))
-
-      # cleanup
-      rm -f tmp.nc
-    done
+  month=0
+  for nf in *.nc; do
+    logn "$nf: "
+    echo -n "translating NetCDF file to GTiff... "
+    f="$TMP_DIR/$nf.tiff"
+    gdal_translate -of GTiff -q "$nf" "$f"
+    if [ $? -ne 0 ]; then
+      echo failed.
+      continue
+    else
+      echo -n "ok. "
+    fi
     
-  fi
+    echo -n "importing to rasdaman... "
+    run_rasql_query update_query
+    
+    month=$(($month + 1))
+    
+    rm -f "$f"
+  done
   
-  # cleanup
-  rm -f $f tmp.nc
-
 done
 
 popd > /dev/null

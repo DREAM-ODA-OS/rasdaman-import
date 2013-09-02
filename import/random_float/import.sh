@@ -49,14 +49,19 @@ done
 # import data to rasdaman
 # ----------------------------------------------------------------------------
 
+function insert_query()
+{
+  $RASQL -q "insert into $c values \$1" -f $f --mddtype "$MDD_TYPE" --mdddomain "[0:$X,0:$Y]" > /dev/null
+}
+
 function importras()
 {
 pushd $DATADIR > /dev/null
 
 for c in $COLLS; do
   logn "importing $c... "
-  $RASQL -q "insert into $c values \$1" -f 512x512.bin --mddtype "$MDD_TYPE" --mdddomain "[0:$X,0:$Y]" > /dev/null
-  feedback
+  f=512x512.bin
+  run_rasql_query insert_query
 done
 
 popd > /dev/null
