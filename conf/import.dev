@@ -1,0 +1,19 @@
+# ------------------------------------------------------------------------------
+# development variables, needed for compiling import utilities in tools/
+#
+
+INCS=-I$(RMANHOME)/include \
+     -I$(RMANHOME)/include/debug \
+
+LIBS=-L$(RMANHOME)/lib -lrasodmg -lclientcomm -lconversion -lraslib -lnetwork -lservercomm -ltiff -ljpeg -lpng -lcrypto -lz -lnetpbm -lnetcdf_c++
+
+#DEFS=-DRMANDEBUG \
+     -DDEBUG \
+     -DBASEDB_PGSQL \
+     -DCOMPDATE="27.08.2012 13:59:41" \
+     -DCPPSTDLIB \
+     -DX86 \
+     -DRMANVERSION=8310 \
+     -DLINUX \
+     -DEARLY_TEMPLATE \
+     -DLITTLE_ENDIAN

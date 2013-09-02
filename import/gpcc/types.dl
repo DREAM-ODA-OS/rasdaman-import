@@ -1,0 +1,2 @@
+typedef marray <float, 3> GpccFloatCube;
+typedef set<GpccFloatCube> null values [-9999] GpccFloatSet3;
