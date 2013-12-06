@@ -76,7 +76,7 @@ fi
 # logging
 #
 LOG="$IMPORT_SCRIPT_DIR/log"
-OLDLOG="$LOG.save"
+OLDLOG="$LOG."`stat log --printf="%y" | tr ':' '-' | tr ' ' '_' | awk -F '.' '{ print $1; }'`
 
 function log()
 {
