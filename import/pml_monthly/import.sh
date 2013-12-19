@@ -22,6 +22,8 @@ IMPORT_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # include import data coin_fileiguration and utility functions
 . $IMPORT_SCRIPT_DIR/import.cfg
 
+import_var=Rrs_510
+
 # ----------------------------------------------------------------------------
 # import initialization
 # ----------------------------------------------------------------------------
@@ -77,7 +79,7 @@ for c in $COLLS; do
       logn "month $month: translating NetCDF file to GTiff... "
       f="$TMP_DIR/$in_file.tiff"
       tmp_f="$TMP_DIR/tmp.nc"
-      ncks -C -v chlor_a "$in_file" "$tmp_f" > /dev/null
+      ncks -C -v $import_var "$in_file" "$tmp_f" > /dev/null
       gdal_translate -of GTiff -q "$tmp_f" "$f" > /dev/null 2>&1
       if [ $? -ne 0 ]; then
         echo failed.
@@ -119,6 +121,6 @@ done
 
 initcolls
 importras
-importpet
+#importpet
 
 log "done."

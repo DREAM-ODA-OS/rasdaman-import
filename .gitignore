@@ -2,3 +2,4 @@ conf/import.var
 log
 log.save
 *.log
+log.*
