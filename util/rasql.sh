@@ -12,7 +12,7 @@
 # arg 1: base type
 # arg 2: optional dimension number (default: none)
 #
-function base_to_coll_type()
+base_to_coll_type()
 {
   local ret=""
   case "$1" in
@@ -32,7 +32,7 @@ function base_to_coll_type()
 # check if collection is empty
 # arg 1: collection name
 # return: 0 if empty, 1 otherwise
-function coll_empty()
+coll_empty()
 {
   local c="$1"
   $RASQL -q "select oid($c) from $c" | grep "Query result collection has 0 element(s):"
@@ -41,7 +41,7 @@ function coll_empty()
 
 # ------------------------------------------------------------------------------
 # drop rasdaman types, set in global vars $SET_TYPE, $MDD_TYPE, $BASE_TYPE
-function drop_types()
+drop_types()
 {
   check_rasdaman
   
@@ -75,7 +75,7 @@ function drop_types()
 
 # ------------------------------------------------------------------------------
 # update $COLLS (leave only the ones not present in rasdaman)
-function update_colls()
+update_colls()
 {
   local tmpcolls=""
   for c in $COLLS; do
@@ -96,7 +96,7 @@ function update_colls()
 # arg 1: collection name
 # return 0 if found in rasdaman, non-zero otherwise
 #
-function check_coll()
+check_coll()
 {
   local coll_name="$1"
   $RASQL -q 'select r from RAS_COLLECTIONNAMES as r' --out string | egrep "\b$coll_name\b" > /dev/null
@@ -105,7 +105,7 @@ function check_coll()
 # check if collection exists in rasdaman
 # arg 1: collection name
 # arg 2: error message in case collection doesn't exist
-function check_collection()
+check_collection()
 {
   check_coll "$1"
   if [ $? -ne 0 ]; then
@@ -117,7 +117,7 @@ function check_collection()
 # ------------------------------------------------------------------------------
 # drop collections as specified by the arguments. If no collections are given
 # it assumes global var $COLLS
-function drop_colls()
+drop_colls()
 {
   check_rasdaman
   local colls_to_drop="$COLLS"
@@ -141,7 +141,7 @@ function drop_colls()
 # check user-defined types, if not present testdata/types.dl is read by rasdl.
 # arg 1: set type name
 #
-function check_user_type()
+check_user_type()
 {
   local SET_TYPE="$1"
   $RASDL -p | egrep --quiet  "\b$SET_TYPE\b"
@@ -155,7 +155,7 @@ function check_user_type()
 # check built-in types, if not present error is thrown
 # arg 1: set type name
 #
-function check_type()
+check_type()
 {
   local SET_TYPE="$1"
   $RASDL -p | egrep --quiet  "\b$SET_TYPE\b"
@@ -167,7 +167,7 @@ function check_type()
 # ------------------------------------------------------------------------------
 # read rasdl types, given the file name from which to read
 #
-function read_types_from()
+read_types_from()
 {
   local types="$1"
   $RASDL -p | egrep --quiet  "\b$SET_TYPE\b"
@@ -204,12 +204,12 @@ function read_types_from()
 # ------------------------------------------------------------------------------
 # read rasdl types, expects global vars SET_TYPE
 #
-function read_types()
+read_types()
 {
   read_types_from "$IMPORT_SCRIPT_DIR/types.dl"
 }
 
-function get_types()
+get_types()
 {
   MDD_TYPE=$1
   SET_TYPE=$2
@@ -218,7 +218,7 @@ function get_types()
 # ------------------------------------------------------------------------------
 # return rasdaman struct from a NetCDF input file
 # arg 1: netcdf input file
-function nc2type()
+nc2type()
 {
   local f="$1"
   [ -f "$f" ] || error "file not found: $f"
@@ -235,7 +235,7 @@ function nc2type()
 # get dimensionality of a collection
 # arg 1: collection name
 # return: echo number of dimensions
-function get_dims_no()
+get_dims_no()
 {
   local c="$1"
   $RASQL -q "select sdom(c) from $c as c" --out string --quiet | tr -d '[' | tr -d ']' | tr ',' ' ' | tr ':' ',' | tr ' ' '\n' | wc -l
@@ -245,7 +245,7 @@ function get_dims_no()
 # get cell type of rasql collection
 # arg 1: collection name
 # return: cell type as printed by rasql
-function get_range_type()
+get_range_type()
 {
   local c="$1"
   local dims=`get_dims_no "$c"`
@@ -279,7 +279,7 @@ function get_range_type()
 #
 # arg 1: function name to execute
 # arg 2: minimum RAM, optional by default it's 500MB
-function run_rasql_query()
+run_rasql_query()
 {
   local func="$1"
   local min_mem=300

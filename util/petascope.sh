@@ -9,7 +9,7 @@
 
 # ------------------------------------------------------------------------------
 # Check if petascope is initialized and running
-function check_petascope()
+check_petascope()
 {
   $PSQL --list | egrep "\b$PS_DB\b" > /dev/null
   if [ $? -ne 0 ]; then
@@ -28,7 +28,7 @@ function check_petascope()
 # check if coverage exists in petascope
 # arg 1: coverage name
 # return 0 on success, non-0 otherwise
-function check_petascope_cov()
+check_petascope_cov()
 {
   local c="$1"
   local ret=0
@@ -43,7 +43,7 @@ function check_petascope_cov()
 # check if coverage exists in rasdaman and petascope
 # arg 1: coverage name
 # return 0 on success, non-0 otherwise
-function check_cov()
+check_cov()
 {
   local c="$1"
   check_petascope_cov "$c"
@@ -57,7 +57,7 @@ function check_cov()
 # ------------------------------------------------------------------------------
 # update petascope coverages list to be imported, based on global var $COLLS
 # and outputing result in global var $COVS
-function update_covs()
+update_covs()
 {
   local tmpcolls=""
   for c in $COLLS; do
@@ -75,7 +75,7 @@ function update_covs()
 
 # ------------------------------------------------------------------------------
 # drop metadata for coverages in global variable COLLS
-function drop_petascope()
+drop_petascope()
 {
   check_postgres
   for c in $COLLS; do
@@ -107,7 +107,7 @@ function drop_petascope()
 # ------------------------------------------------------------------------------
 # remove collection with raserase
 # arg 1: collection name
-function raserase_coll()
+raserase_coll()
 {
   local c=$1
   logn "deleting collection $c from rasdaman... "
@@ -123,7 +123,7 @@ function raserase_coll()
 
 # ------------------------------------------------------------------------------
 # remove collections in global var $COLLS with raserase
-function raserase_colls()
+raserase_colls()
 {
   check_rasdaman
   for c in $COLLS; do
@@ -133,7 +133,7 @@ function raserase_colls()
 
 # ------------------------------------------------------------------------------
 # compile WMS utilities if not present
-function compile_wms()
+compile_wms()
 {
   if [ ! -e "$WMS_INIT_PATH/initpyramid" ]; then
     log Compiling initpyramid...
@@ -149,7 +149,7 @@ function compile_wms()
 
 # ------------------------------------------------------------------------------
 # drop WMS coverage
-function drop_wms()
+drop_wms()
 {
   check_postgres
   for c in $COLLS; do
@@ -163,7 +163,7 @@ function drop_wms()
 # get X pixel resolution with gdalinfo
 # arg 1: file name
 #
-function get_resolution_x()
+get_resolution_x()
 {
   gdalinfo "$1" | grep 'Pixel Size' | sed 's/.*(//' | tr -d ')' | tr ',' ' ' | awk '{ print $1; }'
 }
@@ -172,7 +172,7 @@ function get_resolution_x()
 # get Y pixel resolution with gdalinfo
 # arg 1: file name
 #
-function get_resolution_y()
+get_resolution_y()
 {
   gdalinfo "$1" | grep 'Pixel Size' | sed 's/.*(//' | tr -d ')' | tr ',' ' ' | awk '{ print $2; }'
 }
@@ -181,7 +181,7 @@ function get_resolution_y()
 # get upper left X coordinate with gdalinfo
 # arg 1: file name
 #
-function get_upperleft_x()
+get_upperleft_x()
 {
   gdalinfo "$1" | grep 'Upper Left' | sed 's/) (.*//' |  sed 's/.*(//' | tr -d ',' | awk '{ print $1; }'
 }
@@ -190,7 +190,7 @@ function get_upperleft_x()
 # get upper left Y coordinate with gdalinfo
 # arg 1: file name
 #
-function get_upperleft_y()
+get_upperleft_y()
 {
   gdalinfo "$1" | grep 'Upper Left' | sed 's/) (.*//' |  sed 's/.*(//' | tr -d ',' | awk '{ print $2; }'
 }
@@ -199,7 +199,7 @@ function get_upperleft_y()
 # get lower right X coordinate with gdalinfo
 # arg 1: file name
 #
-function get_lowerright_x()
+get_lowerright_x()
 {
   gdalinfo "$1" | grep 'Lower Right' | sed 's/) (.*//' |  sed 's/.*(//' | tr -d ',' | awk '{ print $1; }'
 }
@@ -208,7 +208,7 @@ function get_lowerright_x()
 # get lower right Y coordinate with gdalinfo
 # arg 1: file name
 #
-function get_lowerright_y()
+get_lowerright_y()
 {
   gdalinfo "$1" | grep 'Lower Right' | sed 's/) (.*//' |  sed 's/.*(//' | tr -d ',' | awk '{ print $2; }'
 } 
@@ -219,7 +219,7 @@ function get_lowerright_y()
 # arg 1: file name
 # resutl: [X_shift, Y_shift]
 #
-function compute_pixel_shift()
+compute_pixel_shift()
 {
   xres=`get_resolution_x $f`
   yres=`get_resolution_y $f`
@@ -237,7 +237,7 @@ function compute_pixel_shift()
 # returns the value at the specificed position.
 # arg 1: list of values, e.g. "a,b,c,d"
 # arg 2: 0-based position, e.g. 2 = c
-function get_axis_name()
+get_axis_name()
 {
   local names=$1
   local ind=$2
@@ -258,7 +258,7 @@ function get_axis_name()
 # get petascope type corresponding to ps_datatype, from the rasdaman type
 # arg 1: rasdaman type
 # return: petascope type
-function get_ps_type()
+get_ps_type()
 {
   local ret="$1"
   echo "$ret" | egrep '^u' > /dev/null
@@ -273,7 +273,7 @@ function get_ps_type()
 # construct nulldefault value
 # arg 1: number of bands
 # return: nulldefault value
-function get_nulldefault()
+get_nulldefault()
 {
   local rangecomp_no="$1"
   
@@ -300,7 +300,7 @@ function get_nulldefault()
 # arg 2: axis names (CSV list)
 # arg 3: coverage crs
 #
-function import_petascope()
+import_petascope()
 {
   local c="$1"
   local axisnames="$2"

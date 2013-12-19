@@ -36,7 +36,7 @@ update_colls
 # read rasdl types from types.dl file
 read_types
 
-function initcolls()
+initcolls()
 {
 for c in $COLLS; do
   logn "initializing collection $c... "
@@ -49,7 +49,7 @@ done
 # import data to rasdaman
 # ----------------------------------------------------------------------------
 
-function importras()
+importras()
 {
 pushd $DATADIR > /dev/null
 
@@ -66,7 +66,7 @@ popd > /dev/null
 # import data to petascope
 # ----------------------------------------------------------------------------
 
-function importpet()
+importpet()
 {
 for c in $COVS; do
   import_petascope "$c" "$axes_names" "$CRS"

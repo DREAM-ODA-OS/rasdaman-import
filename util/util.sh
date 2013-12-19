@@ -78,22 +78,22 @@ fi
 LOG="$IMPORT_SCRIPT_DIR/log"
 OLDLOG="$LOG."`stat log --printf="%y" | tr ':' '-' | tr ' ' '_' | awk -F '.' '{ print $1; }'`
 
-function log()
+log()
 {
   echo "$PROG: $*"
 }
 
-function loge()
+loge()
 {
   echo "$*"
 }
 
-function logn()
+logn()
 {
   echo -n "$PROG: $*"
 }
 
-function feedback()
+feedback()
 {
   if [ $? -ne 0 ]; then
     loge failed.
@@ -102,7 +102,7 @@ function feedback()
   fi
 }
 
-function error()
+error()
 {
   echo "$PROG: $*"
   echo "$PROG: exiting."
@@ -145,7 +145,7 @@ fi
 # ------------------------------------------------------------------------------
 # dependency checks
 #
-function check_rasdaman()
+check_rasdaman()
 {
   which rasmgr > /dev/null
   if [ $? -ne 0 ]; then
@@ -161,7 +161,7 @@ function check_rasdaman()
   fi
 }
 
-function check_postgres()
+check_postgres()
 {
   which psql > /dev/null
   if [ $? -ne 0 ]; then
@@ -177,7 +177,7 @@ function check_postgres()
   fi
 }
 
-function check_netcdf()
+check_netcdf()
 {
   which ncdump > /dev/null
   if [ $? -ne 0 ]; then
@@ -185,7 +185,7 @@ function check_netcdf()
   fi
 }
 
-function check_wget()
+check_wget()
 {
   which wget > /dev/null
   if [ $? -ne 0 ]; then
@@ -193,7 +193,7 @@ function check_wget()
   fi
 }
 
-function check_netcdf()
+check_netcdf()
 {
   which ncdump > /dev/null
   if [ $? -ne 0 ]; then
@@ -201,7 +201,7 @@ function check_netcdf()
   fi
 }
 
-function check_gdal()
+check_gdal()
 {
   which gdal_translate > /dev/null
   if [ $? -ne 0 ]; then
@@ -209,7 +209,7 @@ function check_gdal()
   fi
 }
 
-function check_nco()
+check_nco()
 {
   which ncks > /dev/null
   if [ $? -ne 0 ]; then
@@ -217,7 +217,7 @@ function check_nco()
   fi
 }
 
-function check_ncl()
+check_ncl()
 {
   which ncl_convert2nc > /dev/null
   if [ $? -ne 0 ]; then
@@ -230,7 +230,7 @@ function check_ncl()
 # print variables from a netcdf file in the form: "type name"
 # arg 1: netcdf file
 #
-function get_nc_vars()
+get_nc_vars()
 {
   ncdump -h "$1" | grep "variables:" -A1000 | sed '/^\t\t.*/d' | sed 's/(.*//' | sed '/variables/d' | sed '/}/d' | sed 's/[ \t]*//' | sed 's/byte/char/g' | sed 's/int/long/g'
 }
@@ -239,7 +239,7 @@ function get_nc_vars()
 # put first word in variable FIRST, the rest in REST
 # arg 1: a list of words
 #
-function split_first()
+split_first()
 {
   FIRST=`echo "$1" | awk '{ print $1; }'`
   REST=`echo "$1" | sed 's/^[^ ]* //'`
@@ -247,7 +247,7 @@ function split_first()
 
 # -------------------------
 # cleanup intermediate files
-function cleanup()
+cleanup()
 {
   rm -rf $TMP_DIR/*
 }
@@ -258,7 +258,7 @@ function cleanup()
 # arg2: month
 # arg3: day
 # return: variables year, month, day
-function next_date()
+next_date()
 {
   year=`date -d "$1-$2-$3 +1 day" +"%Y"`
   month=`date -d "$1-$2-$3 +1 day" +"%m"`
@@ -269,7 +269,7 @@ function next_date()
 # ------------------------------------------------------------------------------
 # rasdaman administration
 #
-function restart_rasdaman()
+restart_rasdaman()
 {
   logn "restarting rasdaman... "
   which stop_rasdaman.sh > /dev/null
@@ -286,7 +286,7 @@ function restart_rasdaman()
 # ------------------------------------------------------------------------------
 # restart postgres
 #
-function restart_postgres()
+restart_postgres()
 {
   logn "restarting postgres... "
   sudo service postgresql restart > /dev/null 2>&1

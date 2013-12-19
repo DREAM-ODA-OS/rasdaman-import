@@ -36,7 +36,7 @@ update_colls
 # read rasdl types from types.dl file
 read_types
 
-function initcolls()
+initcolls()
 {
 for c in $COLLS; do
   logn "initializing collection $c... "
@@ -49,12 +49,12 @@ done
 # import data to rasdaman
 # ----------------------------------------------------------------------------
 
-function insert_query()
+insert_query()
 {
   $RASQL -q "insert into $c values \$1" -f $f --mddtype "$MDD_TYPE" --mdddomain "[0:$X,0:$Y]" > /dev/null
 }
 
-function importras()
+importras()
 {
 pushd $DATADIR > /dev/null
 
