@@ -192,7 +192,7 @@ get_upperleft_x()
 #
 get_upperleft_y()
 {
-  gdalinfo "$1" | grep 'Upper Left' | sed 's/) (.*//' |  sed 's/.*(//' | tr -d ',' | awk '{ print $2; }'
+  gdalinfo "$1" | grep 'Upper Left' | sed 's/) (.*//' |  sed 's/.*(//' | tr -d ',' | tr -d ')' | awk '{ print $2; }'
 }
 
 # ------------------------------------------------------------------------------
@@ -210,7 +210,7 @@ get_lowerright_x()
 #
 get_lowerright_y()
 {
-  gdalinfo "$1" | grep 'Lower Right' | sed 's/) (.*//' |  sed 's/.*(//' | tr -d ',' | awk '{ print $2; }'
+  gdalinfo "$1" | grep 'Lower Right' | sed 's/) (.*//' |  sed 's/.*(//' | tr -d ',' | tr -d ')' | awk '{ print $2; }'
 } 
 
 
@@ -230,6 +230,32 @@ compute_pixel_shift()
   shift_y=`echo "$uly / $yres" | bc`
   
   echo "[$shift_x, $shift_y]"
+}
+
+# ------------------------------------------------------------------------------
+# update the min_x_geo_coord, max_x_geo_coord, ..., with gdalinfo
+# arg 1: file name
+# result: no result, global variables are directly updated
+#
+update_geo_bbox()
+{
+  local minx=$(get_upperleft_x "$f")
+  local maxx=$(get_lowerright_x "$f")
+  local miny=$(get_lowerright_y "$f")
+  local maxy=$(get_upperleft_y "$f")
+  local up="0"
+  
+  up=$(echo "$minx < $min_x_geo_coord" | bc -l)
+  [ "$up" == "1" ] && min_x_geo_coord="$minx"
+  
+  up=$(echo "$miny < $min_y_geo_coord" | bc -l)
+  [ "$up" == "1" ] && min_y_geo_coord="$miny"
+  
+  up=$(echo "$maxx > $max_x_geo_coord" | bc -l)
+  [ "$up" == "1" ] && max_x_geo_coord="$maxx"
+  
+  up=$(echo "$maxy > $max_y_geo_coord" | bc -l)
+  [ "$up" == "1" ] && max_y_geo_coord="$maxy"
 }
 
 # ------------------------------------------------------------------------------

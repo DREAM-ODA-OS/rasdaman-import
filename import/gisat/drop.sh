@@ -26,8 +26,8 @@ IMPORT_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # work
 # ----------------------------------------------------------------------------
 
-drop_types
 drop_colls
 drop_petascope
+drop_types
 
 log "done."
