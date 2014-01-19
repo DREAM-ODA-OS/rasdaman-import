@@ -260,6 +260,33 @@ update_geo_bbox()
 }
 
 # ------------------------------------------------------------------------------
+# update the min_x_geo_coord, max_x_geo_coord, ..., with regards to the bbox
+# in petascopedb
+# result: no result, global variables are directly updated
+#
+update_db_geo_bbox()
+{
+  local cov_id="$1"
+  local minx=$($PSQL -c  "select numLo from PS_Domain where name = 'x' and coverage = $cov_id" | head -3 | tail -1) > /dev/null
+  local maxx=$($PSQL -c  "select numHi from PS_Domain where name = 'x' and coverage = $cov_id" | head -3 | tail -1) > /dev/null
+  local miny=$($PSQL -c  "select numLo from PS_Domain where name = 'y' and coverage = $cov_id" | head -3 | tail -1) > /dev/null
+  local maxy=$($PSQL -c  "select numHi from PS_Domain where name = 'y' and coverage = $cov_id" | head -3 | tail -1) > /dev/null
+  local up="0"
+  
+  up=$(echo "$minx < $min_x_geo_coord" | bc -l)
+  [ "$up" == "1" ] && min_x_geo_coord="$minx"
+  
+  up=$(echo "$miny < $min_y_geo_coord" | bc -l)
+  [ "$up" == "1" ] && min_y_geo_coord="$miny"
+  
+  up=$(echo "$maxx > $max_x_geo_coord" | bc -l)
+  [ "$up" == "1" ] && max_x_geo_coord="$maxx"
+  
+  up=$(echo "$maxy > $max_y_geo_coord" | bc -l)
+  [ "$up" == "1" ] && max_y_geo_coord="$maxy"
+}
+
+# ------------------------------------------------------------------------------
 # expects a list of comma-separated values,
 # returns the value at the specificed position.
 # arg 1: list of values, e.g. "a,b,c,d"
@@ -458,7 +485,7 @@ import_petascope()
 # arg 2: axis names (CSV list)
 # arg 3: coverage crs
 #
-import_petascope()
+update_petascope()
 {
   local c="$1"
   local axisnames="$2"
@@ -495,8 +522,8 @@ import_petascope()
   # describe the pixel domain
   local i=0
   for domain in $domains; do
-    local lo=$(echo "$domain" | awk -F "," "{ print $1; }")
-    local hi=$(echo "$domain" | awk -F "," "{ print $2; }")
+    local lo=$(echo "$domain" | awk -F "," '{ print $1; }')
+    local hi=$(echo "$domain" | awk -F "," '{ print $2; }')
     $PSQL -c "update PS_CellDomain set lo = $lo, hi = $hi where coverage = $c_id and i = $i" > /dev/null
     i=$(($i + 1))
   done
@@ -507,8 +534,10 @@ import_petascope()
   local type=0
   local name=""
   
+  update_db_geo_bbox "$c_id"
+  
   for domain in $domains; do
-    name=`get_axis_name "$axisnames" $i`
+    name=$(get_axis_name "$axisnames" $i)
     if [ $name == "x" ]; then
       if [ -z "$min_x_geo_coord" -o -z "$max_x_geo_coord" ]; then
         dom="$domain"
@@ -529,19 +558,19 @@ import_petascope()
       dom="$domain"
       type=5
     fi
-    local lo=$(echo "$dom" | awk -F "," "{ print $1; }")
-    local hi=$(echo "$dom" | awk -F "," "{ print $2; }")
+    local lo=$(echo "$dom" | awk -F "," '{ print $1; }')
+    local hi=$(echo "$dom" | awk -F "," '{ print $2; }')
     $PSQL -c "update PS_Domain set numLo = $lo, numHi = $hi where coverage = $c_id and i = $i" > /dev/null
     i=$(($i + 1))
   done
   
   # geo-referecing information about the coverage
   if [ -n "$xdomain" -a -n "$ydomain" ]; then
-    local lo=$(echo "$xdomain" | awk -F "," "{ print $1; }")
-    local hi=$(echo "$xdomain" | awk -F "," "{ print $2; }")
+    local lo=$(echo "$xdomain" | awk -F "," '{ print $1; }')
+    local hi=$(echo "$xdomain" | awk -F "," '{ print $2; }')
     $PSQL -c "update PS_CrsDetails set low1 = $lo, high1 = $hi where coverage = $c_id" > /dev/null
-    lo=$(echo "$ydomain" | awk -F "," "{ print $1; }")
-    hi=$(echo "$ydomain" | awk -F "," "{ print $2; }")
+    lo=$(echo "$ydomain" | awk -F "," '{ print $1; }')
+    hi=$(echo "$ydomain" | awk -F "," '{ print $2; }')
     $PSQL -c "update PS_CrsDetails set low2 = $lo, high2 = $hi where coverage = $c_id" > /dev/null
   fi
 

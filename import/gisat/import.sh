@@ -29,11 +29,6 @@ IMPORT_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # check dependencies
 check_rasdaman
 
-# update coll/cov lists
-COVS="$COLLS"
-update_covs
-update_colls
-
 # read rasdl types from types.dl file
 read_types
 
@@ -48,7 +43,7 @@ for c in $COLLS; do
   fi
   
   coll_empty "$c"
-  if [ $? -ne 0 ]; then
+  if [ $? -eq 0 ]; then
     logn "initializing object... "
     local x=$(echo "$pixel_shift" | tr -d '[' | tr -d ']' | tr -d ',' | awk '{ print $1; }')
     local y=$(echo "$pixel_shift" | tr -d '[' | tr -d ']' | tr -d ',' | awk '{ print $2; }')
@@ -64,7 +59,10 @@ done
 
 update_query()
 {
+  initcolls
+  logn " importing $f, shift $pixel_shift, slice $t... "
   $RASQL -q "update $c as m set m[*:*, *:*, $t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $f > /dev/null || exit
+  update_geo_bbox "$f"
 }
 
 import_file()
@@ -76,10 +74,14 @@ import_file()
   # check and uncompress input file if necessary
   echo "$f" | egrep -i "\.tar\.gz$" > /dev/null
   if [ $? -eq 0 ]; then
+    logn " extracting $f... "
     f=$(tar xzf "$f" -C "$TMP_DIR" -v | egrep -i "\.tif$")
     if [ $? -ne 0 ]; then
       error "no TIFF file found in $f."
+    else
+      echo ok.
     fi
+    f="$TMP_DIR/$f"
   else
     echo "$f" | egrep -i "\.tif$" > /dev/null
     if [ $? -ne 0 ]; then
@@ -88,7 +90,6 @@ import_file()
   fi
   
   # at this point we assume to have a TIFF in f
-  initcolls
   
   # time slice
   t=`echo $f | awk -F '_' '{ print $3; }'`
@@ -96,9 +97,7 @@ import_file()
   # position in rasdaman, computed from resolution and geo-bbox
   pixel_shift=$(compute_pixel_shift $f)
   
-  logn " importing $f, shift $pixel_shift, slice $t... "
   run_rasql_query update_query
-  update_geo_bbox "$f"
 }
 
 import_dir()
