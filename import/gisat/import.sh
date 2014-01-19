@@ -192,6 +192,8 @@ if [ -n "$dir_to_import" ]; then
 elif [ -n "$file_to_import" ]; then
   import_file "$file_to_import"
   importpet
+else
+  usage
 fi
 
 log "done."
