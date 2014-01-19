@@ -1,2 +1,8 @@
-Scripts for managing ingestion of simulated Sentinel-2 data
-into rasdaman.
+Scripts for managing ingestion of simulated Sentinel-2 data into rasdaman.
+In rasdaman the data is modelled as a 3D x/y/t cube, MDD type 3D 5-char band:
+ * x/y are computed from the UTM 33N coordinates directly from the tiff file
+ * t is taken directly from the file name, e.g. 
+   S2sim_190025_20000403_33UWS_L1C_rad.tif => 20000403
+   
+The import script assumes a particular format for the filename, in particular
+---_---_timeslice_----.tif Both .tif and .tar.gz can be specified for import.
