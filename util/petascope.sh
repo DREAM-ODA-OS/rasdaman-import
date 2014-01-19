@@ -239,6 +239,7 @@ compute_pixel_shift()
 #
 update_geo_bbox()
 {
+  local f="$1"
   local minx=$(get_upperleft_x "$f")
   local maxx=$(get_lowerright_x "$f")
   local miny=$(get_lowerright_y "$f")
@@ -445,6 +446,104 @@ import_petascope()
   for axis in $axes_list; do
     $PSQL -c "insert into PS_crsset ( axis, crs) values ( $axis, $crs1_id)" > /dev/null
   done
+
+  echo ok.
+}
+
+# ------------------------------------------------------------------------------
+#
+# update petascope metadata
+#
+# arg 1: coverage name
+# arg 2: axis names (CSV list)
+# arg 3: coverage crs
+#
+import_petascope()
+{
+  local c="$1"
+  local axisnames="$2"
+  
+  #
+  # import
+  #
+  logn "updating coverage $c in petascope... "
+  
+  check_coll "$c"
+  if [ $? -ne 0 ]; then
+    echo "skipping, $c not found in rasdaman."
+    return 1
+  fi
+  
+  # get sdom of collection
+  local domains=`$RASQL -q "select sdom(c) from $c as c" --out string --quiet | tr -d '[' | tr -d ']' | tr ',' ' ' | tr ':' ','`
+  local dims_no=`get_dims_no "$c"`
+  
+  local rangetype=`get_range_type $c $dims_no`
+  local rangecomp=`echo $rangetype | sed 's/, /-/g' | sed 's/struct{ //g' | sed 's/ }//' | sed 's/ /:/g' | tr '-' ' '`
+  local rangecomp_no=`echo $rangecomp | tr ' ' '\n' | wc -l`
+  
+  local nulldefault=`get_nulldefault $rangecomp_no`
+  
+  local covtype='RectifiedGridCoverage'
+  if [ "$crs" == "CRS:1" ]; then
+    covtype="GridCoverage"
+  fi
+  
+  # get the coverage id
+  local c_id=$($PSQL -c  "select id from PS_Coverage where name = '$c' " | head -3 | tail -1) > /dev/null
+
+  # describe the pixel domain
+  local i=0
+  for domain in $domains; do
+    local lo=$(echo "$domain" | awk -F "," "{ print $1; }")
+    local hi=$(echo "$domain" | awk -F "," "{ print $2; }")
+    $PSQL -c "update PS_CellDomain set lo = $lo, hi = $hi where coverage = $c_id and i = $i" > /dev/null
+    i=$(($i + 1))
+  done
+
+  # describe the geo domain
+  local i=0
+  local dom=""
+  local type=0
+  local name=""
+  
+  for domain in $domains; do
+    name=`get_axis_name "$axisnames" $i`
+    if [ $name == "x" ]; then
+      if [ -z "$min_x_geo_coord" -o -z "$max_x_geo_coord" ]; then
+        dom="$domain"
+      else
+        dom="$min_x_geo_coord,$max_x_geo_coord"
+      fi
+      xdomain="$dom"
+      type=1
+    elif [ $name == "y" ]; then
+      if [ -z "$min_y_geo_coord" -o -z "$max_y_geo_coord" ]; then
+        dom="$domain"
+      else
+        dom="$min_y_geo_coord,$max_y_geo_coord"
+      fi
+      ydomain="$dom"
+      type=2
+    else
+      dom="$domain"
+      type=5
+    fi
+    local lo=$(echo "$dom" | awk -F "," "{ print $1; }")
+    local hi=$(echo "$dom" | awk -F "," "{ print $2; }")
+    $PSQL -c "update PS_Domain set numLo = $lo, numHi = $hi where coverage = $c_id and i = $i" > /dev/null
+    i=$(($i + 1))
+  done
+  
+  # geo-referecing information about the coverage
+  if [ -n "$xdomain" -a -n "$ydomain" ]; then
+    local lo=$(echo "$xdomain" | awk -F "," "{ print $1; }")
+    local hi=$(echo "$xdomain" | awk -F "," "{ print $2; }")
+    $PSQL -c "update PS_CrsDetails set low1 = $lo, high1 = $hi where coverage = $c_id" > /dev/null
+    lo=$(echo "$ydomain" | awk -F "," "{ print $1; }")
+    hi=$(echo "$ydomain" | awk -F "," "{ print $2; }")
+    $PSQL -c "update PS_CrsDetails set low2 = $lo, high2 = $hi where coverage = $c_id" > /dev/null
+  fi
 
   echo ok.
 }

@@ -35,8 +35,7 @@ base_to_coll_type()
 coll_empty()
 {
   local c="$1"
-  $RASQL -q "select oid($c) from $c" | grep "Query result collection has 0 element(s):"
-  return $?
+  $RASQL -q "select oid($c) from $c" | grep "Query result collection has 0 element(s):" > /dev/null
 }
 
 # ------------------------------------------------------------------------------
