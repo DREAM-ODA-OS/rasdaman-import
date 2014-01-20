@@ -62,7 +62,9 @@ update_query()
   initcolls
   logn " importing $f, shift $pixel_shift, slice $t... "
   $RASQL -q "update $c as m set m[*:*, *:*, $t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $f > /dev/null || exit
+  rc=$?
   update_geo_bbox "$f"
+  return $rc
 }
 
 import_file()
@@ -114,9 +116,9 @@ import_dir()
       [ -f "$pf" ] || continue
       
       # consider only .tar.gz and .tif files
-      echo "$f" | egrep -i "(\.tar\.gz|\.tif)$" > /dev/null
+      echo "$pf" | egrep -i "(\.tar\.gz|\.tif)$" > /dev/null
       if [ $? -eq 0 ]; then
-        import_file "$f"
+        import_file "$pf"
       fi
     done
   done
