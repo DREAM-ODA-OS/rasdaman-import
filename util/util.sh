@@ -136,10 +136,14 @@ fi
 
 # ------------------------------------------------------------------------------
 # setup tmp dir
-mkdir -p $TMP_DIR
+mkdir -p "$TMP_DIR"
 if [ $? -ne 0 ]; then
   log "warning: failed creating temporary directory $TMP_DIR, using /tmp"
   export TMP_DIR=/tmp
+fi
+
+if [ ! -w "$TMP_DIR" ]; then
+  error "Temporary directory $TMP_DIR is not writable by the user running this script."
 fi
 
 # ------------------------------------------------------------------------------

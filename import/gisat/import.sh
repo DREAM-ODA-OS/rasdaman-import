@@ -72,18 +72,30 @@ import_file()
   [ -n "$1" ] || error "no file to import given."
   local f="$1"
   [ -f "$f" ] || error "file $f not found."
+  local remove_dir=
+  log ">>"
   
   # check and uncompress input file if necessary
   echo "$f" | egrep -i "\.tar\.gz$" > /dev/null
   if [ $? -eq 0 ]; then
     logn " extracting $f... "
-    f=$(tar xzf "$f" -C "$TMP_DIR" -v | egrep -i "\.tif$")
+    local extracted_files=$(tar xzf "$f" -C "$TMP_DIR" -v)
+    if [ $? -ne 0 ]; then
+      echo failed.
+      exit $RC_ERROR
+    fi
+    remove_dir="$TMP_DIR/"$(echo "$extracted_files" | head -n 1)
+    if [ ! -d "$remove_dir" ]; then
+      echo failed.
+      exit $RC_ERROR
+    fi
+    local tmpf=$(echo "$extracted_files" | egrep -i "\.tif$")
     if [ $? -ne 0 ]; then
       error "no TIFF file found in $f."
     else
       echo ok.
     fi
-    f="$TMP_DIR/$f"
+    f="$TMP_DIR/$tmpf"
   else
     echo "$f" | egrep -i "\.tif$" > /dev/null
     if [ $? -ne 0 ]; then
@@ -97,9 +109,16 @@ import_file()
   t=`echo $f | awk -F '_' '{ print $3; }'`
   
   # position in rasdaman, computed from resolution and geo-bbox
-  pixel_shift=$(compute_pixel_shift $f)
+  pixel_shift=$(compute_pixel_shift "$f")
   
   run_rasql_query update_query
+  
+  # remove extracted directory
+  if [ -n "$remove_dir" ]; then
+    logn " removing extracted data $remove_dir... "
+    rm -rf "$remove_dir"
+    feedback
+  fi
 }
 
 import_dir()
