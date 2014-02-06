@@ -22,6 +22,8 @@ IMPORT_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # include import data configuration and utility functions
 . $IMPORT_SCRIPT_DIR/import.cfg
 
+MAP_FILE="$TMP_DIR/slices_map"
+
 # ----------------------------------------------------------------------------
 # import initialization
 # ----------------------------------------------------------------------------
@@ -60,8 +62,8 @@ done
 update_query()
 {
   initcolls
-  logn " importing $f, shift $pixel_shift, slice $t... "
-  $RASQL -q "update $c as m set m[*:*, *:*, $t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $f > /dev/null || exit
+  logn " importing $f, shift $pixel_shift, slice $t (rasdaman slice $pixel_t)... "
+  $RASQL -q "update $c as m set m[*:*, *:*, $pixel_t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $f > /dev/null || exit
   rc=$?
   update_geo_bbox "$f"
   return $rc
@@ -106,7 +108,8 @@ import_file()
   # at this point we assume to have a TIFF in f
   
   # time slice
-  t=`echo $f | awk -F '_' '{ print $3; }'`
+  t=$(echo $f | awk -F '_' '{ print $3; }')
+  pixel_t=$(awk '/'$t'/ {print FNR}' "$MAP_FILE")
   
   # position in rasdaman, computed from resolution and geo-bbox
   pixel_shift=$(compute_pixel_shift "$f")
@@ -131,15 +134,29 @@ import_dir()
 
   for c in $COLLS; do
     log "importing $c"
+
+    log "  determining number of time slices in $d..."
+    ls | grep 'S2sim_' | awk -F '_' '{ print $3; }' | sed '/^$/d' | sort | uniq > "$MAP_FILE"
+    [ -s "$MAP_FILE" ] || error "No Sentinel2-simulated data found (files or directories starting with 'S2sim_')"
+    local slices_no=$(cat "$MAP_FILE" | wc -l)
+    log "  found $slices_no unique time slices, will be imported in indexes 0 - $(($slices_no - 1))."
+
     for pf in *; do
-      [ -f "$pf" ] || continue
+      [ -f "$pf" -o -d "$pf" ] || continue
       
       # consider only .tar.gz and .tif files
       echo "$pf" | egrep -i "(\.tar\.gz|\.tif)$" > /dev/null
       if [ $? -eq 0 ]; then
         import_file "$pf"
+      elif [ -d "$pf" ]; then
+        pushd "$pf" > /dev/null
+        for tf in *.tif; do
+          import_file "$tf"
+        done
+        popd > /dev/null
       fi
     done
+    rm -f "$MAP_FILE"
   done
 
   popd > /dev/null
@@ -174,8 +191,8 @@ usage()
   echo "Options:"
   echo -e "  -d, --dir"
   echo -e "    specify directory, all files in it will be imported as with the -f option."
-  echo -e "  -f, --file FILE"
-  echo -e "    specify file to import, can be an archive or TIFF file."
+  #echo -e "  -f, --file FILE"
+  #echo -e "    specify file to import, can be an archive or TIFF file."
   echo -e "  -h, --help"
   echo -e "    display this help and exit"
   exit $RC_OK
@@ -192,7 +209,7 @@ dir_to_import=""
 for i in $*; do
   if [ -n "$option" ]; then
     case $option in
-      -f|--file*)   file_to_import="$i";;
+#      -f|--file*)   file_to_import="$i";;
       -d|--dir*)    dir_to_import="$i";;
       *) error "unknown option: $option"
     esac
