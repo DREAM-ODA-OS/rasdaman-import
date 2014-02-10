@@ -37,11 +37,13 @@ read_types
 
 initcolls()
 {
-for c in $COLLS; do
+  c="$1"
   check_coll "$c"
   if [ $? -ne 0 ]; then
-    logn "initializing collection $c with $SET_TYPE<$MDD_TYPE<$BASE_TYPE>>... "
-    $RASQL -q "create collection $c $SET_TYPE" > /dev/null
+    local set_type=$SET_TYPE
+    [ "$c" == "$GISAT_MASK_COLL" ] && set_type="GreySet3"
+    logn "initializing collection $c with $set_type>... "
+    $RASQL -q "create collection $c $set_type" > /dev/null
     feedback
   fi
   
@@ -50,10 +52,11 @@ for c in $COLLS; do
     logn "initializing object... "
     local x=$(echo "$pixel_shift" | tr -d '[' | tr -d ']' | tr -d ',' | awk '{ print $1; }')
     local y=$(echo "$pixel_shift" | tr -d '[' | tr -d ']' | tr -d ',' | awk '{ print $2; }')
-    $RASQL -q "insert into $c values marray x in [$x:$x,$y:$y,$pixel_t:$pixel_t] values {0c,0c,0c,0c,0c}" > /dev/null || exit $RC_ERROR
+    local init_val="{0c,0c,0c,0c,0c}"
+    [ "$c" == "$GISAT_MASK_COLL" ] && init_val="0c"
+    $RASQL -q "insert into $c values marray x in [$x:$x,$y:$y,$pixel_t:$pixel_t] values $init_val" > /dev/null || exit $RC_ERROR
     feedback
   fi
-done
 }
 
 # ----------------------------------------------------------------------------
@@ -62,7 +65,7 @@ done
 
 update_query()
 {
-  initcolls
+  initcolls $GISAT_COLL
   logn " importing $f, shift $pixel_shift, slice $t (rasdaman slice $pixel_t)... "
   $RASQL -q "update $GISAT_COLL as m set m[*:*, *:*, $pixel_t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $f > /dev/null || exit
   rc=$?
@@ -72,11 +75,11 @@ update_query()
 
 update_query_mask()
 {
-  initcolls
+  initcolls $GISAT_MASK_COLL
   logn " importing $maskf, shift $pixel_shift, slice $t (rasdaman slice $pixel_t)... "
-  $RASQL -q "update $GISAT_MASK_COLL as m set m[*:*, *:*, $pixel_t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $maskf > /dev/null || exit
+  $RASQL -q "update $GISAT_MASK_COLL as m set m[*:*, *:*, $pixel_t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $maskr > /dev/null || exit
   rc=$?
-  update_geo_bbox "$maskf"
+  update_geo_bbox "$maskr"
   return $rc
 }
 
@@ -214,7 +217,7 @@ import_dir()
 
 importpet()
 {
-for c in $COLLS; do
+for c in $GISAT_COLL $GISAT_MASK_COLL; do
   check_petascope_cov "$c"
   if [ $? -ne 0 ]; then
     import_petascope "$c" "$axes_names" "$CRS"
