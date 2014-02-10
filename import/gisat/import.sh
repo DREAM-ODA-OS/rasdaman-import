@@ -49,7 +49,7 @@ for c in $COLLS; do
     logn "initializing object... "
     local x=$(echo "$pixel_shift" | tr -d '[' | tr -d ']' | tr -d ',' | awk '{ print $1; }')
     local y=$(echo "$pixel_shift" | tr -d '[' | tr -d ']' | tr -d ',' | awk '{ print $2; }')
-    $RASQL -q "insert into $c values marray x in [$x:$x,$y:$y,$t:$t] values {0c,0c,0c,0c,0c}" > /dev/null || exit $RC_ERROR
+    $RASQL -q "insert into $c values marray x in [$x:$x,$y:$y,$pixel_t:$pixel_t] values {0c,0c,0c,0c,0c}" > /dev/null || exit $RC_ERROR
     feedback
   fi
 done
