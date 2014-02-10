@@ -192,7 +192,12 @@ import_dir()
       import_file "$pf"
     elif [ -d "$pf" ]; then
       pushd "$pf" > /dev/null
-      for tf in *.tif; do
+      if [ $masks -eq 0 ]; then
+        for tf in *.tif; do
+          import_file "$tf"
+        done
+      fi
+      for tf in *.shp; do
         import_file "$tf"
       done
       popd > /dev/null
