@@ -23,6 +23,7 @@ IMPORT_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 . $IMPORT_SCRIPT_DIR/import.cfg
 
 MAP_FILE="$TMP_DIR/slices_map"
+RASTERIZE="$IMPORT_SCRIPT_DIR/rasterize.py"
 
 # ----------------------------------------------------------------------------
 # import initialization
@@ -63,9 +64,19 @@ update_query()
 {
   initcolls
   logn " importing $f, shift $pixel_shift, slice $t (rasdaman slice $pixel_t)... "
-  $RASQL -q "update $c as m set m[*:*, *:*, $pixel_t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $f > /dev/null || exit
+  $RASQL -q "update $GISAT_COLL as m set m[*:*, *:*, $pixel_t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $f > /dev/null || exit
   rc=$?
   update_geo_bbox "$f"
+  return $rc
+}
+
+update_query_mask()
+{
+  initcolls
+  logn " importing $maskf, shift $pixel_shift, slice $t (rasdaman slice $pixel_t)... "
+  $RASQL -q "update $GISAT_MASK_COLL as m set m[*:*, *:*, $pixel_t] assign shift(inv_tiff(\$1), $pixel_shift)" -f $maskf > /dev/null || exit
+  rc=$?
+  update_geo_bbox "$maskf"
   return $rc
 }
 
@@ -76,6 +87,10 @@ import_file()
   [ -f "$f" ] || error "file $f not found."
   local remove_dir=
   log ">>"
+  
+  local maskf="$1"
+  local tiff=1
+  local shp=1
   
   # check and uncompress input file if necessary
   echo "$f" | egrep -i "\.tar\.gz$" > /dev/null
@@ -96,12 +111,26 @@ import_file()
       error "no TIFF file found in $f."
     else
       echo ok.
+      f="$TMP_DIR/$tmpf"
     fi
-    f="$TMP_DIR/$tmpf"
+    tmpf=$(echo "$extracted_files" | egrep -i "\.shp$")
+    if [ $? -ne 0 ]; then
+      error "no shapefile file found in $f."
+    else
+      echo ok.
+      maskf="$TMP_DIR/$tmpf"
+    fi
   else
     echo "$f" | egrep -i "\.tif$" > /dev/null
     if [ $? -ne 0 ]; then
-      error "input file $f does not appear to be neither an archive nor a TIFF file."
+      tiff=0
+    fi
+    echo "$f" | egrep -i "\.shp$" > /dev/null
+    if [ $? -ne 0 ]; then
+      shp=0
+    fi
+    if [ $tiff -eq 0 -a $shp -eq 0 ]; then
+      error "input file $f does not appear to be neither an archive, nor a TIFF/SHP file."
     fi
   fi
   
@@ -111,10 +140,23 @@ import_file()
   t=$(echo $f | awk -F '_' '{ print $3; }')
   pixel_t=$(awk '/'$t'/ {print FNR}' "$MAP_FILE")
   
-  # position in rasdaman, computed from resolution and geo-bbox
-  pixel_shift=$(compute_pixel_shift "$f")
+  if [ $tiff -eq 1 -a $masks -eq 0 ]; then
+    # position in rasdaman, computed from resolution and geo-bbox
+    pixel_shift=$(compute_pixel_shift "$f")
+    run_rasql_query update_query
+  fi
   
-  run_rasql_query update_query
+  if [ $shp -eq 1 ]; then
+    # rasterize
+    local maskr="$TMP_DIR/raster.tif"
+    python $RASTERIZE -f "$maskf" -o "$maskr"
+    
+    # position in rasdaman, computed from resolution and geo-bbox
+    pixel_shift=$(compute_pixel_shift "$maskr")
+    run_rasql_query update_query_mask
+    
+    rm -f "$maskr"
+  fi
   
   # remove extracted directory
   if [ -n "$remove_dir" ]; then
@@ -132,32 +174,31 @@ import_dir()
   
   pushd $d > /dev/null
 
-  for c in $COLLS; do
-    log "importing $c"
+  c="gisat"
+  log "importing $c"
 
-    log "  determining number of time slices in $d..."
-    ls | grep 'S2sim_' | awk -F '_' '{ print $3; }' | sed '/^$/d' | sort | uniq > "$MAP_FILE"
-    [ -s "$MAP_FILE" ] || error "No Sentinel2-simulated data found (files or directories starting with 'S2sim_')"
-    local slices_no=$(cat "$MAP_FILE" | wc -l)
-    log "  found $slices_no unique time slices, will be imported in indexes 0 - $(($slices_no - 1))."
+  log "  determining number of time slices in $d..."
+  ls | grep 'S2sim_' | awk -F '_' '{ print $3; }' | sed '/^$/d' | sort | uniq > "$MAP_FILE"
+  [ -s "$MAP_FILE" ] || error "No Sentinel2-simulated data found (files or directories starting with 'S2sim_')"
+  local slices_no=$(cat "$MAP_FILE" | wc -l)
+  log "  found $slices_no unique time slices, will be imported in indexes 0 - $(($slices_no - 1))."
 
-    for pf in *; do
-      [ -f "$pf" -o -d "$pf" ] || continue
-      
-      # consider only .tar.gz and .tif files
-      echo "$pf" | egrep -i "(\.tar\.gz|\.tif)$" > /dev/null
-      if [ $? -eq 0 ]; then
-        import_file "$pf"
-      elif [ -d "$pf" ]; then
-        pushd "$pf" > /dev/null
-        for tf in *.tif; do
-          import_file "$tf"
-        done
-        popd > /dev/null
-      fi
-    done
-    rm -f "$MAP_FILE"
+  for pf in *; do
+    [ -f "$pf" -o -d "$pf" ] || continue
+    
+    # consider only .tar.gz and .tif files
+    echo "$pf" | egrep -i "(\.tar\.gz|\.tif|\.shp)$" > /dev/null
+    if [ $? -eq 0 ]; then
+      import_file "$pf"
+    elif [ -d "$pf" ]; then
+      pushd "$pf" > /dev/null
+      for tf in *.tif; do
+        import_file "$tf"
+      done
+      popd > /dev/null
+    fi
   done
+  rm -f "$MAP_FILE"
 
   popd > /dev/null
 }
@@ -191,6 +232,8 @@ usage()
   echo "Options:"
   echo -e "  -d, --dir"
   echo -e "    specify directory, all files in it will be imported as with the -f option."
+  echo -e "  -m, --masks"
+  echo -e "    import only cloud masks."
   #echo -e "  -f, --file FILE"
   #echo -e "    specify file to import, can be an archive or TIFF file."
   echo -e "  -h, --help"
@@ -204,6 +247,7 @@ usage()
 option=""
 file_to_import=""
 dir_to_import=""
+masks=0
 
 # go through all arguments on the command line
 for i in $*; do
@@ -217,6 +261,7 @@ for i in $*; do
   else
     case $i in
       -h|--help*)   usage;;
+      -m|--masks*)  masks=1;;
       *) option="$i"
     esac
   fi

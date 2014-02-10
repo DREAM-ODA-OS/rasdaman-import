@@ -221,10 +221,11 @@ get_lowerright_y()
 #
 compute_pixel_shift()
 {
-  xres=`get_resolution_x $f`
-  yres=`get_resolution_y $f`
-  ulx=`get_upperleft_x $f`
-  uly=`get_upperleft_y $f`
+  local in_file="$1"
+  xres=`get_resolution_x $in_file`
+  yres=`get_resolution_y $in_file`
+  ulx=`get_upperleft_x $in_file`
+  uly=`get_upperleft_y $in_file`
 
   shift_x=`echo "$ulx / $xres" | bc`
   shift_y=`echo "$uly / $yres" | bc`
