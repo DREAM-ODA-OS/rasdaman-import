@@ -152,7 +152,7 @@ import_file()
   if [ $shp -eq 1 ]; then
     # rasterize
     local maskr="$TMP_DIR/raster.tif"
-    python $RASTERIZE -f "$maskf" -o "$maskr"
+    python $RASTERIZE -f "$maskf" -o "$maskr" -r "$f"
     
     # position in rasdaman, computed from resolution and geo-bbox
     pixel_shift=$(compute_pixel_shift "$maskr")
