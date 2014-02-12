@@ -85,7 +85,7 @@ create_mask_coll()
 update_query()
 {
   logn " importing $file_to_import, shift $pixel_shift, slice $t_index... "
-  $RASQL -q "update $coverage as m set m[*:*, *:*, $t_index] assign shift(inv_tiff(\$1), $pixel_shift)" -f $file_to_import > /dev/null && echo ok. || error failed.
+  $RASQL -q "update $coverage as m set m[*:*, *:*, $t_index] assign shift(inv_tiff(\$1), $pixel_shift)" -f $file_to_import > /dev/null || error failed.
   update_geo_bbox "$file_to_import" "$coverage"
   return 0
 }
@@ -93,12 +93,11 @@ update_query()
 update_query_mask()
 {
   logn " importing $raster_mask, shift $pixel_shift, slice $t_index... "
-  $RASQL -q "update $coverage_mask as m set m[*:*, *:*, $t_index] assign shift(inv_tiff(\$1), $pixel_shift)" -f $raster_mask > /dev/null && echo ok. || error failed.
+  $RASQL -q "update $coverage_mask as m set m[*:*, *:*, $t_index] assign shift(inv_tiff(\$1), $pixel_shift)" -f $raster_mask > /dev/null || error failed.
   update_geo_bbox "$raster_mask" "$coverage_mask"
   return 0
 }
 
-# TODO
 rasterize_mask()
 {
   raster_mask="$TMP_DIR/raster_mask.tif"
@@ -235,9 +234,9 @@ run_rasql_query update_query
 importpet "$coverage"
 
 # 6. import mask
-#rasterize_mask
-#run_rasql_query update_query_mask
-#importpet "$coverage_mask"
+rasterize_mask
+run_rasql_query update_query_mask
+importpet "$coverage_mask"
 
 
 log "done."

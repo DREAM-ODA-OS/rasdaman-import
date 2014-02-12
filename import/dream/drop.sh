@@ -27,11 +27,13 @@ IMPORT_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # ----------------------------------------------------------------------------
 
 COLLS=
-for f in $TIMESTAMPS_DIR; do
+for f in $TIMESTAMPS_DIR/*; do
+  f=$(basename $f)
+  mask=$(mask_coll $f)
   if [ -n "$COLLS" ]; then
-    COLLS="$COLLS $f"
+    COLLS="$COLLS $f $mask"
   else
-    COLLS="$f"
+    COLLS="$f $mask"
   fi
 done
 
