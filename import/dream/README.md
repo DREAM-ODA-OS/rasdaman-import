@@ -1,6 +1,6 @@
 Summary
 =======
-Scripts that fitting rasdaman into the ODA-OS ingestion work-flow in DREAM.
+Scripts that fit rasdaman into the ODA-OS ingestion work-flow in DREAM.
 
 Usage
 =====
@@ -23,11 +23,20 @@ Options:
 ```
 All three parameters, -f, -m, and -c are mandatory.
 
+Formats supported include all formats supported by GDAL. Internally the script
+converts the input file to GeoTIFF with *gdal_translat* (unless it is already
+a GeoTIFF file), before importing it into rasdaman.
+
+The mask within the input EO-O&M metadata file is automatically rasterized, and
+imported into a separate coverage with name COVERAGE_NAME_mask, where 
+COVERAGE_NAME is the parameter specified with the -c option.
+
 Data model in rasdaman
 ======================
 In rasdaman the data for each coverage is modelled as a 3D x/y/t cube.
  * x/y are computed from the coordinates/resolution directly from the input file
  * t is computed from the timestamp in the EO-O&M metadata file
+ 
 Since a coverage corresponds to a single 3D x/y/t cube, all time slices should
 be imported to the same *-c coverage_name*
 
