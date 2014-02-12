@@ -139,6 +139,8 @@ usage()
   echo -e "    specify file to import, can be an archive or TIFF file."
   echo -e "  -m, --metadata"
   echo -e "    specify EO-O&M metadata file."
+  echo -e "  -c, --coverage"
+  echo -e "    specify coverage name."
   echo -e "  -h, --help"
   echo -e "    display this help and exit"
   
