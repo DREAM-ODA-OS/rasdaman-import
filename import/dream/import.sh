@@ -24,9 +24,6 @@ IMPORT_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 RASTERIZE="$IMPORT_SCRIPT_DIR/rasterize.py"
 
-TIMESTAMPS_DIR="$IMPORT_SCRIPT_DIR/timestamps"
-mkdir -p "$TIMESTAMPS_DIR"
-
 #
 # Parse XML DOM
 #
@@ -56,7 +53,7 @@ create_coll()
   # 1. get collection/mdd type
   get_types $(python $GETTYPE "$data_file" 3 "$c" "$TMP_DIR" 2>/dev/null)
   [ -f "$TMP_DIR/$c.init" ] || error "failed to compute initialization value"
-  [ -f "$TMP_DIR/$c.dl" ]   && $RASDL -r "$TMP_DIR/$c.dl" -i
+  [ -f "$TMP_DIR/$c.dl" ]   && read_types_from "$TMP_DIR/$c.dl"
   local init_val=$(head -n 1 "$TMP_DIR/$c.init")
   
   logn "creating collection $c of type $SET_TYPE... "
@@ -90,6 +87,7 @@ update_query()
   logn " importing $file_to_import, shift $pixel_shift, slice $t_index... "
   $RASQL -q "update $coverage as m set m[*:*, *:*, $t_index] assign shift(inv_tiff(\$1), $pixel_shift)" -f $file_to_import > /dev/null && echo ok. || error failed.
   update_geo_bbox "$file_to_import" "$coverage"
+  return 0
 }
 
 update_query_mask()
@@ -97,6 +95,7 @@ update_query_mask()
   logn " importing $raster_mask, shift $pixel_shift, slice $t_index... "
   $RASQL -q "update $coverage_mask as m set m[*:*, *:*, $t_index] assign shift(inv_tiff(\$1), $pixel_shift)" -f $raster_mask > /dev/null && echo ok. || error failed.
   update_geo_bbox "$raster_mask" "$coverage_mask"
+  return 0
 }
 
 # TODO
@@ -184,7 +183,7 @@ logn "checking input arguments... "
 [ -z "$coverage" ]       && usage "please specify coverage name."
 [ -f "$file_metadata" ]  || usage "specified EO-O&M metadata file not found: $file_metadata"
 [ -f "$file_to_import" ] || usage "specified file not found: $file_to_import"
-file "$file_metadata" | grep 'XML document text' > /dev/null 2>&1 || error "specified EO-O&M metadata file is not an XML file: $file_metadata"
+file "$file_metadata" | egrep 'XML +document +text' > /dev/null 2>&1 || error "specified EO-O&M metadata file is not an XML file: $file_metadata"
 gdalinfo "$file_to_import" > /dev/null 2>&1 || error "specified file to import not recognized by GDAL: $file_to_import"
 echo ok.
 
@@ -216,9 +215,9 @@ while read_dom; do
   [ -n "$timestamp" ] && break
 done < $file_metadata
 
-timestamps_file="$TIMESTAMPS_DIR/$c"
+timestamps_file="$TIMESTAMPS_DIR/$coverage"
 if [ -f "$timestamps_file" ]; then
-  tmp=$(grep "$timestamp" "$timestamps_file" > /dev/null)
+  tmp=$(grep "$timestamp" "$timestamps_file")
   if [ $? -eq 0 ]; then
     t_index=$(echo "$tmp" | awk '{ print $1; }')
   else

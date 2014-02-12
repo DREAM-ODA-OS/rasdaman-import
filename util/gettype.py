@@ -107,12 +107,14 @@ setTypeName = ""
 nBands = inDs.RasterCount
 rasType = ""
 initval = ""
+typeids = ["","c","us","s","ul","l",".0",".0"]
+
 for i in range(1, nBands + 1):
+  gdalType = inDs.GetRasterBand(i).DataType
   if pixelType != "":
     pixelType += ","
-    initval += ","
+    initval += ",0" + typeids[gdalType]
   else:
-    gdalType = inDs.GetRasterBand(i).DataType
     if gdalType == 1:
       pixelType += "char"
       if inDs.RasterCount == 1:

@@ -26,8 +26,19 @@ IMPORT_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # work
 # ----------------------------------------------------------------------------
 
+COLLS=
+for f in $TIMESTAMPS_DIR; do
+  if [ -n "$COLLS" ]; then
+    COLLS="$COLLS $f"
+  else
+    COLLS="$f"
+  fi
+done
+
 drop_colls
 drop_petascope
 drop_types
+
+rm -f $TIMESTAMPS_DIR/*
 
 log "done."
