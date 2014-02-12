@@ -106,9 +106,11 @@ setTypeName = ""
 
 nBands = inDs.RasterCount
 rasType = ""
+initval = ""
 for i in range(1, nBands + 1):
   if pixelType != "":
     pixelType += ","
+    initval += ","
   else:
     gdalType = inDs.GetRasterBand(i).DataType
     if gdalType == 1:
@@ -117,30 +119,45 @@ for i in range(1, nBands + 1):
         rasType = "Grey"
       elif inDs.RasterCount == 3 and pixelType == "char band1,char band2,char":
         rasType = "RGB"
+      initval += "0c"
     elif gdalType == 2:
       pixelType += "unsigned short"
       rasType = "UShort"
+      initval += "0us"
     elif gdalType == 3:
       pixelType += "short"
       rasType = "Short"
+      initval += "0s"
     elif gdalType == 4:
       pixelType += "unsigned long"
       rasType = "ULong"
+      initval += "0ul"
     elif gdalType == 5:
       pixelType += "long"
       rasType = "Long"
+      initval += "0l"
     elif gdalType == 6:
       pixelType += "float"
       rasType = "Float"
+      initval += "0.0"
     elif gdalType == 7:
       pixelType += "double"
       rasType = "Double"
+      initval += "0.0"
     else:
       print "can't handle GDAL type: " + gdalType
       sys.exit(1)
   if nBands > 1:
     pixelType += " band" + str(i)
 
+if nBands > 1:
+  initval = "{" + initval + "}"
+#
+# output initializing value
+#
+f = open(outfPrefix + ".init",'w')
+print >>f, initval
+f.close()
 
 f = open(outfPrefix + ".dl",'w')
 

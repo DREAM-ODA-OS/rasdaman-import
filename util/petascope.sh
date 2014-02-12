@@ -32,7 +32,7 @@ check_petascope_cov()
 {
   local c="$1"
   local ret=0
-  id=`$PSQL -c  "select id from PS_Coverage where name = '$c' " | head -3 | tail -1`
+  id=$($PSQL -c  "select id from PS_Coverage where name = '$c' " | head -3 | tail -1)
   if [[ "$id" == \(0*\) ]]; then
     ret=1
   fi
@@ -241,23 +241,38 @@ compute_pixel_shift()
 update_geo_bbox()
 {
   local f="$1"
+  local c="$2"
   local minx=$(get_upperleft_x "$f")
   local maxx=$(get_lowerright_x "$f")
   local miny=$(get_lowerright_y "$f")
   local maxy=$(get_upperleft_y "$f")
-  local up="0"
   
-  up=$(echo "$minx < $min_x_geo_coord" | bc -l)
-  [ "$up" == "1" ] && min_x_geo_coord="$minx"
-  
-  up=$(echo "$miny < $min_y_geo_coord" | bc -l)
-  [ "$up" == "1" ] && min_y_geo_coord="$miny"
-  
-  up=$(echo "$maxx > $max_x_geo_coord" | bc -l)
-  [ "$up" == "1" ] && max_x_geo_coord="$maxx"
-  
-  up=$(echo "$maxy > $max_y_geo_coord" | bc -l)
-  [ "$up" == "1" ] && max_y_geo_coord="$maxy"
+  check_petascope_cov "$c"
+  if [ $? -ne 0 ]; then
+    min_x_geo_coord=$minx
+    max_x_geo_coord=$maxx
+    min_y_geo_coord=$miny
+    max_y_geo_coord=$maxy
+  else
+    local cov_id=$($PSQL -c  "select id from PS_Coverage where name = '$c' " | head -3 | tail -1) > /dev/null
+    min_x_geo_coord=$($PSQL -c  "select numLo from PS_Domain where name = 'x' and coverage = $cov_id" | head -3 | tail -1) > /dev/null
+    max_x_geo_coord=$($PSQL -c  "select numHi from PS_Domain where name = 'x' and coverage = $cov_id" | head -3 | tail -1) > /dev/null
+    min_y_geo_coord=$($PSQL -c  "select numLo from PS_Domain where name = 'y' and coverage = $cov_id" | head -3 | tail -1) > /dev/null
+    max_y_geo_coord=$($PSQL -c  "select numHi from PS_Domain where name = 'y' and coverage = $cov_id" | head -3 | tail -1) > /dev/null
+    
+    local up="0"
+    up=$(echo "$minx < $min_x_geo_coord" | bc -l)
+    [ "$up" == "1" ] && min_x_geo_coord="$minx"
+    
+    up=$(echo "$miny < $min_y_geo_coord" | bc -l)
+    [ "$up" == "1" ] && min_y_geo_coord="$miny"
+    
+    up=$(echo "$maxx > $max_x_geo_coord" | bc -l)
+    [ "$up" == "1" ] && max_x_geo_coord="$maxx"
+    
+    up=$(echo "$maxy > $max_y_geo_coord" | bc -l)
+    [ "$up" == "1" ] && max_y_geo_coord="$maxy"
+  fi
 }
 
 # ------------------------------------------------------------------------------
