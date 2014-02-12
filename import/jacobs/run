@@ -1,0 +1,7 @@
+#!/bin/bash
+#./drop.sh
+#./import.sh
+#valgrind --tool=memcheck --leak-check=full rasql -q "insert into jacobs values inv_tiff(\$1)" -f /d/DataImport/data/jacobs/jacobs.tif --user rasadmin --passwd rasadmin
+#igprof -d -mp -z -o igprof.pp.gz rasql -q "insert into jacobs values inv_tiff(\$1)" -f /d/DataImport/data/jacobs/jacobs.tif --user rasadmin --passwd rasadmin
+igprof -d -pp -z -o igprof.pp.gz rasql -q "update jacobs as c set c assign inv_tiff(\$1) where oid(c) = 44545" -f /d/DataImport/data/jacobs/jacobs.tif --user rasadmin --passwd rasadmin
+igprof-analyse -d -v -g igprof.pp.gz >& igreport_perf.res

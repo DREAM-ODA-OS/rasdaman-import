@@ -131,6 +131,9 @@ import_file()
     echo "$f" | egrep -i "\.shp$" > /dev/null
     if [ $? -ne 0 ]; then
       shp=0
+    elif [ $tiff -eq 0 ]; then
+      prefix=$(echo $maskf | sed 's/_[a-z][a-z]*\.shp//g')
+      f=$(ls $prefix*.tif)
     fi
     if [ $tiff -eq 0 -a $shp -eq 0 ]; then
       error "input file $f does not appear to be neither an archive, nor a TIFF/SHP file."
