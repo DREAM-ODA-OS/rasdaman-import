@@ -1,0 +1,3 @@
+struct GisatPixel1 { char red, green, blue; };
+typedef marray <GisatPixel1, 3> GisatMdd1;
+typedef set<GisatMdd1> GisatSet1;
